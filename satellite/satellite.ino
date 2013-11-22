@@ -1,4 +1,4 @@
-#include <Timer1.h>
+#include <TimerOne.h>
 
 #include "ngps.h"
 
@@ -7,7 +7,7 @@
  * Ping State-machine Parameters
  ******************************************************************************/
 
-fsm_state_t fsm_state = FSM_STATE_SYNC;
+volatile fsm_state_t fsm_state;
 
 
 /**
@@ -19,12 +19,12 @@ ping_fsm_tick(void)
 	if (fsm_state == FSM_STATE_SYNC) {
 		// During the sync state just assert the sync line.
 		digitalWrite(SYNC_PIN, LOW);
-	} else if (   fsm_state >= FSM_STATE_TRANSMIT(0)
-	           && fsm_state <  FSM_STATE_TRANSMIT(NUM_TRANSMITTERS)
+	} else if (   fsm_state >= TRANSMITTER_TO_FSM_STATE(0)
+	           && fsm_state <  TRANSMITTER_TO_FSM_STATE(NUM_TRANSMITTERS)
 	          ) {
 		// During the transmit states, just pulse the trigger line
-		digitalWrite(SAT_TRIGGER_PINS, HIGH);
-		digitalWrite(SAT_TRIGGER_PINS, LOW);
+		digitalWrite(SAT_TRIGGER_PINS[FSM_STATE_TO_TRANSMITTER(fsm_state)], HIGH);
+		digitalWrite(SAT_TRIGGER_PINS[FSM_STATE_TO_TRANSMITTER(fsm_state)], LOW);
 		
 		// Make sure that the active-low sync signal is deasserted
 		digitalWrite(SYNC_PIN, HIGH);
@@ -34,6 +34,10 @@ ping_fsm_tick(void)
 		digitalWrite(SYNC_PIN, HIGH);
 		fsm_state = FSM_STATE_SYNC;
 	}
+	
+	// Advance to the next state
+	if (++fsm_state >= NUM_FSM_STATES)
+		fsm_state = FSM_STATE_SYNC;
 }
 
 
@@ -58,9 +62,9 @@ setup()
 	digitalWrite(SYNC_PIN, HIGH);
 	
 	// Setup the FSM
-	Timer1.initialize(FSM_CLOCK_PERIOD);
-	Timer1.attachInterrupt(ping_fsm_tick);
-	Timer1.start();
+	fsm_state = FSM_STATE_SYNC;
+	Timer1.initialize();
+	Timer1.attachInterrupt(ping_fsm_tick, (unsigned long)FSM_CLOCK_PERIOD);
 }
 
 void
