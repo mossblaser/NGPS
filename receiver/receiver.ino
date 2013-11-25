@@ -7,7 +7,7 @@
  * Ping State-machine Parameters
  ******************************************************************************/
 
-volatile fsm_state_t fsm_state = FSM_STATE_SYNC;
+volatile fsm_state_t fsm_state;
 
 /**
  * A constant which specifies that an arriving ping came too late.
@@ -28,9 +28,8 @@ void
 on_sync(void)
 {
 	// Just reset the FSM
-	//Timer1.restart();
-	fsm_state = FSM_STATE_SYNC;
-	ping_fsm_tick();
+	fsm_state = FSM_STATE_SYNC - 1;
+	TCNT1 = 0;
 }
 
 
@@ -40,14 +39,13 @@ on_sync(void)
 void
 on_echo(void)
 {
-	if (fsm_state == FSM_STATE_SYNC)
+	// Don't run if not a receive state or if a ping already arrived.
+	if (fsm_state == FSM_STATE_SYNC
+	    || ping_delays[FSM_STATE_TO_TRANSMITTER(fsm_state)] != INVALID_PING_DELAY)
 		return;
 	
 	// Record the time the ping arrived.
 	ping_delays[FSM_STATE_TO_TRANSMITTER(fsm_state)] = Timer1.read();
-	
-	// Not interested in any further rising edges (e.g. reflections).
-	detachInterrupt(REC_ECHO_INTERRUPT);
 }
 
 
@@ -58,11 +56,12 @@ void
 ping_fsm_tick()
 {
 	digitalWrite(13, !digitalRead(13));
+	
+	// Advance to the next state
+	if (++fsm_state >= NUM_FSM_STATES)
+		fsm_state = FSM_STATE_SYNC;
+	
 	if (fsm_state == FSM_STATE_SYNC) {
-		// Disable the echo sensing interrupt on the off-chance it didn't disable
-		// itself before getting here (e.g. if no pings were heard).
-		Timer1.detachInterrupt();
-		
 		// Trigger the receiver's HC-SR04 module. The echo to this will be ignored
 		// but unfortunately the comparator on the board doesn't start listening
 		// until at least one ping has been sent. By sending a ping during the sync
@@ -80,10 +79,6 @@ ping_fsm_tick()
 		// Unknown state, just enter the sync state and do nothing.
 		fsm_state = FSM_STATE_SYNC;
 	}
-	
-	// Advance to the next state
-	if (++fsm_state >= NUM_FSM_STATES)
-		fsm_state = FSM_STATE_SYNC;
 }
 
 
@@ -95,7 +90,9 @@ ping_fsm_tick()
 void
 setup()
 {
+	Timer1.initialize();
 	Serial.begin(SERIAL_BAUD_RATE);
+	
 	pinMode(13, OUTPUT);
 	
 	// Set up trigger pin
@@ -104,7 +101,6 @@ setup()
 	
 	// Set up echo pin (interrupt is added on demand by the FSM)
 	pinMode(REC_ECHO_PIN, INPUT);
-	digitalWrite(REC_ECHO_PIN, LOW);
 	
 	// Set up the active-low, pulled-up sync pin
 	pinMode(SYNC_PIN, INPUT);
@@ -112,8 +108,7 @@ setup()
 	attachInterrupt(SYNC_INTERRUPT, on_sync, FALLING);
 	
 	// Setup the FSM
-	fsm_state = FSM_STATE_SYNC;
-	Timer1.initialize();
+	fsm_state = FSM_STATE_SYNC - 1;
 	Timer1.attachInterrupt(ping_fsm_tick, FSM_CLOCK_PERIOD);
 }
 

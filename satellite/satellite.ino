@@ -16,6 +16,12 @@ volatile fsm_state_t fsm_state;
 void
 ping_fsm_tick(void)
 {
+	digitalWrite(13, !digitalRead(13));
+	
+	// Advance to the next state
+	if (++fsm_state >= NUM_FSM_STATES)
+		fsm_state = FSM_STATE_SYNC;
+	
 	if (fsm_state == FSM_STATE_SYNC) {
 		// During the sync state just assert the sync line.
 		digitalWrite(SYNC_PIN, LOW);
@@ -34,10 +40,7 @@ ping_fsm_tick(void)
 		digitalWrite(SYNC_PIN, HIGH);
 		fsm_state = FSM_STATE_SYNC;
 	}
-	
-	// Advance to the next state
-	if (++fsm_state >= NUM_FSM_STATES)
-		fsm_state = FSM_STATE_SYNC;
+	delay(2);
 }
 
 
@@ -49,7 +52,10 @@ ping_fsm_tick(void)
 void
 setup()
 {
+	Timer1.initialize();
 	Serial.begin(SERIAL_BAUD_RATE);
+	
+	pinMode(13, OUTPUT);
 	
 	// Set up trigger pins
 	for (int i = 0; i < NUM_TRANSMITTERS; i++) {
@@ -62,9 +68,8 @@ setup()
 	digitalWrite(SYNC_PIN, HIGH);
 	
 	// Setup the FSM
-	fsm_state = FSM_STATE_SYNC;
-	Timer1.initialize();
-	Timer1.attachInterrupt(ping_fsm_tick, (unsigned long)FSM_CLOCK_PERIOD);
+	fsm_state = FSM_STATE_SYNC - 1;
+	Timer1.attachInterrupt(ping_fsm_tick, FSM_CLOCK_PERIOD);
 }
 
 void
