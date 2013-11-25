@@ -1,0 +1,151 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 12.04.0 ] */
+
+/* [wxMaxima: title   start ]
+Generalised Trilateration Solution
+   [wxMaxima: title   end   ] */
+
+/* [wxMaxima: comment start ]
+A generalised solution to the trilateration problem where
+we wish to know the position of a point given only three
+distances to three known locations.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: section start ]
+Problem
+   [wxMaxima: section end   ] */
+
+/* [wxMaxima: comment start ]
+The general formula for a sphere e.g. sphere(c,r). Where:
+* c is a triple indicating the 3D coordinates of the center
+* r is the radius of the sphere
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+sphere(c,r):= ((x-c[1])^2 + (y-c[2])^2 + (z-c[3])^2) = r^2$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+We know that our position lies on the intersection of three spheres
+whose centers ({a,b,c}c) are the positions of the known locations and
+whose radii are the known distances of the point to the locations.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+sphere_a: sphere(ac,ar);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+sphere_b: sphere(bc,br);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: input   start ] */
+sphere_c: sphere(cc,cr);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: section start ]
+Solution
+   [wxMaxima: section end   ] */
+
+/* [wxMaxima: comment start ]
+First, solve the intersections of the spheres to get x and y...
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+x_y_sol: solve([sphere_a - sphere_b, sphere_a - sphere_c], [x,y])[1]$
+x_sol: x_y_sol[1];
+y_sol: x_y_sol[2];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Substitute the formulee for x and y into the first sphere and solve to gain z.
+Note that z solutions and its definition is absolutely huge...
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+z_sols:  solve(subst([x_sol,y_sol], sphere_a),z);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: section start ]
+Testing the solution
+   [wxMaxima: section end   ] */
+
+/* [wxMaxima: comment start ]
+To test the solution, just stick in some values given a known position
+and see if the known position pops out.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: subsect start ]
+Simple Test
+   [wxMaxima: subsect end   ] */
+
+/* [wxMaxima: comment start ]
+Test case where satellites a,b,c are at (0,0,0), (2,0,0) and (1,1,0)
+and the receiver is distance 1 from all of them.
+
+Should yield an answer of (1,0,0).
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+z_:
+ev([z_sols[1]]
+  , ac=[0,0,0], ar=1
+  , bc=[2,0,0], br=1
+  , cc=[1,1,0], cr=1
+  )$
+x_y_:
+ev([x_sol,y_sol,z_sols[1]]
+  , ac=[0,0,0], ar=1
+  , bc=[2,0,0], br=1
+  , cc=[1,1,0], cr=1
+  )$
+ev(calculated_answer=[x,y,z], x_y_[1], x_y_[2], z_[1]);
+correct_answer = [1,0,0];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: subsect start ]
+More challenging test
+   [wxMaxima: subsect end   ] */
+
+/* [wxMaxima: comment start ]
+Test with the known points and to-be-resolved point at fairly
+random positions.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+ac_: [4,7,21]$
+bc_: [-4,5,0]$
+cc_: [1,-4,-8]$
+
+rc_: [4,5,6]$
+
+dist(a,b):= sqrt((a[1]-b[1])^2 + (a[2]-b[2])^2 + (a[3]-b[3])^2)$
+ar_: dist(ac_,rc_)$
+br_: dist(bc_,rc_)$
+cr_: dist(cc_,rc_)$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Find out the point's position.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+z_:
+ev([z_sols[1]]
+  , ac=ac_, ar=ar_
+  , bc=bc_, br=br_
+  , cc=cc_, cr=cr_
+  )$
+x_y_:
+ev([x_sol,y_sol]
+  , z_
+  , ac=ac_, ar=ar_
+  , bc=bc_, br=br_
+  , cc=cc_, cr=cr_
+  )$
+ev(calculated_answer=[x,y,z], x_y_[1], x_y_[2], z_[1]);
+correct_answer = rc_;
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$
