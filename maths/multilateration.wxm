@@ -1,0 +1,297 @@
+/* [wxMaxima batch file version 1] [ DO NOT EDIT BY HAND! ]*/
+/* [ Created with wxMaxima version 12.04.0 ] */
+
+/* [wxMaxima: title   start ]
+3D Multilateration Problem
+   [wxMaxima: title   end   ] */
+
+/* [wxMaxima: comment start ]
+A work-through of Andrew Webb's hand-calculated solution from:
+http://www.awebb.info/2013/11/getting-position-from-four-satellites.html
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: section start ]
+Transformation from General Case
+   [wxMaxima: section end   ] */
+
+/* [wxMaxima: comment start ]
+To simplify the solution from the general case where the transmitters may
+lie at any point, we first transform the system such that one transmitter
+lies on the origin, another lies on the x-axis, another lies on the x-y-plane
+and another lies somewhere off the x-y-plane.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: comment start ]
+TODO
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: section start ]
+Solution for the Constrained Case
+   [wxMaxima: section end   ] */
+
+/* [wxMaxima: subsect start ]
+Basic Definitions
+   [wxMaxima: subsect end   ] */
+
+/* [wxMaxima: comment start ]
+Definition of a sphere with center at (3D) c with radius r.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+sphere(c,r):= (x - c[1])^2 + (y - c[2])^2 + (z - c[3])^2 = r^2;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: subsect start ]
+Solving position and time.
+   [wxMaxima: subsect end   ] */
+
+/* [wxMaxima: comment start ]
+Given that we now have the system of spheres below, we proceed
+to solve it. Note that ac, bc, cc, dc are the transformed
+centers of the satellites.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+sphere_a: sphere([    0,    0,    0], ar - e);
+sphere_b: sphere([bc[1],    0,    0], br - e);
+sphere_c: sphere([cc[1],cc[2],    0], cr - e);
+sphere_d: sphere([dc[1],dc[2],dc[3]], dr - e);
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+X can be found by subtracting b from a
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+x_sol: solve(sphere_a - sphere_b, x)[1];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Notice that the only unknown here is e and that the
+expression forms a simple quadratic:
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+x_p1_: ratcoeff(rhs(x_sol), e, 1)$
+x_p0_: ratcoeff(rhs(x_sol), e, 0)$
+ratsimp(rhs(x_sol) - (x_p1_*e + x_p0_));
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+To keep things simple lets write this in such a way
+maxima won't expand and use this as our value for x.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+x_sol_p: x = x_p1*e + x_p0;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Lets solve y by subtracting c from a and substuting in
+our value for x.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+y_sol: solve( subst(x_sol_p, sphere_a - sphere_c)
+            , y
+            )[1];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Once again, this is a quadratic of e so lets use the same trick
+again to keep things simple.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+y_p1_: ratcoeff(rhs(y_sol), e, 1)$
+y_p0_: ratcoeff(rhs(y_sol), e, 0)$
+ratsimp((y_p1_*e + y_p0_) - rhs(y_sol));
+y_sol_p: y = y_p1*e + y_p0;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Lets solve z by subtracting d from a and substuting in our
+values for x and y.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+z_sol: solve( subst([x_sol_p,y_sol_p], sphere_a - sphere_d)
+            , z
+            )[1];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Indeed this is again a quadratic of e so lets use the same trick
+again to keep things simple.
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+z_p1_: ratcoeff(rhs(z_sol), e, 1)$
+z_p0_: ratcoeff(rhs(z_sol), e, 0)$
+ratsimp((z_p1_*e + z_p0_) - rhs(z_sol));
+z_sol_p: z = z_p1*e + z_p0;
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: comment start ]
+Finally lets solve e using our known values of x, y and z. This
+time there are two solutions. The second one is picked as this 
+appears to be the one which yields the correct answers in the
+example cases tried. TODO: Rationalise this...
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+e_sol: solve( subst([x_sol_p, y_sol_p, z_sol_p], sphere_a)
+            , e
+            )[2];
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: section start ]
+'C' Code
+   [wxMaxima: section end   ] */
+
+/* [wxMaxima: comment start ]
+A translation of the required functions into something somewhat like C.
+To make these into valid C, all x^2 should be converted into x*x (though
+a lazy person could subst "^" = pow), types should be given for the
+variables being assigned, the constants (of which there are only "1" and
+"2", should be written as floats and finally semicolons added.
+
+The following Vim commands do some of the work:
+ * Convert x^2 into x*x:
+    s/\<\([a-zA-Z_][a-zA-Z0-9_]*\>\)\^2/\1*\1/g
+ * Convert the integer constants into floats:
+    s/\([^.]\)\(\<[0-9]\+\>\)\([^.]\)/\1\2.0\3/g
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+to_c_code(f):= subst( [ bc[1] = bc_x
+                      , cc[1] = cc_x
+                      , cc[2] = cc_y
+                      , dc[1] = dc_x
+                      , dc[2] = dc_y
+                      , dc[3] = dc_z
+                      ]
+                    , f
+                    )$
+
+display2d_: display2d$
+display2d: false$
+
+to_c_code(x_p1 = x_p1_);
+to_c_code(x_p0 = x_p0_);
+to_c_code(y_p1 = y_p1_);
+to_c_code(y_p0 = y_p0_);
+to_c_code(z_p1 = z_p1_);
+to_c_code(z_p0 = z_p0_);
+
+to_c_code(e_sol);
+to_c_code(z_sol_p);
+to_c_code(y_sol_p);
+to_c_code(x_sol_p);
+
+display2d: display2d_$
+/* [wxMaxima: input   end   ] */
+
+/* [wxMaxima: section start ]
+Testing
+   [wxMaxima: section end   ] */
+
+/* [wxMaxima: comment start ]
+An example scenareo (with no need to translate)
+   [wxMaxima: comment end   ] */
+
+/* [wxMaxima: input   start ] */
+ac_actual: [  0,  0,  0]$
+bc_actual: [100,  0,  0]$
+cc_actual: [  0,100,  0]$
+dc_actual: [  0,  0,100]$
+e_actual: 3$
+rc_actual: [400,500,600]$
+dist(a,b):= sqrt((a[1]-b[1])^2 + (a[2]-b[2])^2 + (a[3]-b[3])^2)$
+ar_actual: dist(rc_actual, ac_actual) + e_actual$
+br_actual: dist(rc_actual, bc_actual) + e_actual$
+cr_actual: dist(rc_actual, cc_actual) + e_actual$
+dr_actual: dist(rc_actual, dc_actual) + e_actual$
+
+e_calc: float
+(ratsimp( ev( subst( [ z_p0 = z_p0_, z_p1 = z_p1_
+                     , y_p0 = y_p0_, y_p1 = y_p1_
+                     , x_p0 = x_p0_, x_p1 = x_p1_
+                     ]
+                   , e_sol
+                   )
+            , ac = ac_actual
+            , bc = bc_actual
+            , cc = cc_actual
+            , dc = dc_actual
+            , ar = ar_actual
+            , br = br_actual
+            , cr = cr_actual
+            , dr = dr_actual
+            )
+        )
+);
+z_calc: float
+(ratsimp( ev( subst( [ z_p0 = z_p0_, z_p1 = z_p1_
+                     , y_p0 = y_p0_, y_p1 = y_p1_
+                     , x_p0 = x_p0_, x_p1 = x_p1_
+                     ]
+                   , z_sol_p
+                   )
+            , ac = ac_actual
+            , bc = bc_actual
+            , cc = cc_actual
+            , dc = dc_actual
+            , ar = ar_actual
+            , br = br_actual
+            , cr = cr_actual
+            , dr = dr_actual
+            , e_calc
+            )
+        )
+);
+y_calc: float
+(ratsimp( ev( subst( [ z_p0 = z_p0_, z_p1 = z_p1_
+                     , y_p0 = y_p0_, y_p1 = y_p1_
+                     , x_p0 = x_p0_, x_p1 = x_p1_
+                     ]
+                   , y_sol_p
+                   )
+            , ac = ac_actual
+            , bc = bc_actual
+            , cc = cc_actual
+            , dc = dc_actual
+            , ar = ar_actual
+            , br = br_actual
+            , cr = cr_actual
+            , dr = dr_actual
+            , e_calc
+            , z_calc
+            )
+        )
+);
+x_calc: float
+(ratsimp( ev( subst( [ z_p0 = z_p0_, z_p1 = z_p1_
+                     , y_p0 = y_p0_, y_p1 = y_p1_
+                     , x_p0 = x_p0_, x_p1 = x_p1_
+                     ]
+                   , x_sol_p
+                   )
+            , ac = ac_actual
+            , bc = bc_actual
+            , cc = cc_actual
+            , dc = dc_actual
+            , ar = ar_actual
+            , br = br_actual
+            , cr = cr_actual
+            , dr = dr_actual
+            , e_calc
+            , z_calc
+            , y_calc
+            )
+        )
+);
+/* [wxMaxima: input   end   ] */
+
+/* Maxima can't load/batch files which end with a comment! */
+"Created with wxMaxima"$
