@@ -11,21 +11,6 @@ http://www.awebb.info/2013/11/getting-position-from-four-satellites.html
    [wxMaxima: comment end   ] */
 
 /* [wxMaxima: section start ]
-Transformation from General Case
-   [wxMaxima: section end   ] */
-
-/* [wxMaxima: comment start ]
-To simplify the solution from the general case where the transmitters may
-lie at any point, we first transform the system such that one transmitter
-lies on the origin, another lies on the x-axis, another lies on the x-y-plane
-and another lies somewhere off the x-y-plane.
-   [wxMaxima: comment end   ] */
-
-/* [wxMaxima: comment start ]
-TODO
-   [wxMaxima: comment end   ] */
-
-/* [wxMaxima: section start ]
 Solution for the Constrained Case
    [wxMaxima: section end   ] */
 
@@ -205,8 +190,8 @@ ac_actual: [  0,  0,  0]$
 bc_actual: [100,  0,  0]$
 cc_actual: [  0,100,  0]$
 dc_actual: [  0,  0,100]$
-e_actual: 3$
-rc_actual: [400,500,600]$
+e_actual: -dist(rc_actual, ac_actual)$
+rc_actual: [-300,400,500]$
 dist(a,b):= sqrt((a[1]-b[1])^2 + (a[2]-b[2])^2 + (a[3]-b[3])^2)$
 ar_actual: dist(rc_actual, ac_actual) + e_actual$
 br_actual: dist(rc_actual, bc_actual) + e_actual$
